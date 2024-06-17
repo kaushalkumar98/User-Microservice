@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">spring_boot_backend_security_jwt_template</a> &gt; <a href="index.source.html" class="el_package">com.app.team2.technotribe.krasvbank.Security</a> &gt; <span class="el_source">JwtUtils.java</span></div><h1>JwtUtils.java</h1><pre class="source lang-java linenums">package com.app.team2.technotribe.krasvbank.Security;
+
+import java.security.Key;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.stereotype.Component;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+<span class="fc" id="L24">@Slf4j</span>
+<span class="nc" id="L25">public class JwtUtils {</span>
+
+	@Value(&quot;${SECRET_KEY}&quot;)
+	private String jwtSecret;
+
+	@Value(&quot;${EXP_TIMEOUT}&quot;)
+	private int jwtExpirationMs;
+	
+	
+	private Key key;
+
+	@PostConstruct
+	public void init() {
+<span class="nc" id="L38">		key = Keys.hmacShaKeyFor(jwtSecret.getBytes());</span>
+<span class="nc" id="L39">	}</span>
+
+	// will be invoked by Authentication controller) , upon successful
+	// authentication
+	public String generateJwtToken(Authentication authentication) {
+<span class="nc" id="L44">		log.info(&quot;generate jwt token &quot; + authentication);</span>
+<span class="nc" id="L45">		CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();</span>
+//JWT : userName,issued at ,exp date,digital signature(does not typically contain password , can contain authorities
+<span class="nc" id="L47">		return Jwts.builder() // JWTs : a Factory class , used to create JWT tokens</span>
+<span class="nc" id="L48">				.setSubject((userPrincipal.getUsername())) // setting subject part of the token(typically user</span>
+															// name/email)
+<span class="nc" id="L50">				.setIssuedAt(new Date())// Sets the JWT Claims iat (issued at) value of current date</span>
+<span class="nc" id="L51">				.setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))// Sets the JWT Claims exp</span>
+																					// (expiration) value.
+				// setting a custom claim
+<span class="nc" id="L54">				.claim(&quot;authorities&quot;, getAuthoritiesInString(userPrincipal.getAuthorities()))</span>
+<span class="nc" id="L55">				.signWith(key, SignatureAlgorithm.HS512) // Signs the constructed JWT using the specified</span>
+															// algorithm with the specified key, producing a
+															// JWS(Json web signature=signed JWT)
+
+				// Using token signing algo : HMAC using SHA-512
+<span class="nc" id="L60">				.compact();// Actually builds the JWT and serializes it to a compact, URL-safe string</span>
+	}
+
+	// this method will be invoked by our custom JWT filter
+	public String getUserNameFromJwtToken(Claims claims) {
+<span class="nc" id="L65">		return claims.getSubject();</span>
+	}
+
+	// this method will be invoked by our custom filter
+	public Claims validateJwtToken(String jwtToken) {
+		// try {
+<span class="nc" id="L71">		Claims claims = Jwts.parserBuilder().setSigningKey(key).build().</span>
+		// Sets the signing key used to verify JWT digital signature.
+<span class="nc" id="L73">				parseClaimsJws(jwtToken).getBody();// Parses the signed JWT returns the resulting Jws&lt;Claims&gt; instance</span>
+		// throws exc in case of failures in verification
+<span class="nc" id="L75">		return claims;		</span>
+	}
+	// Accepts Collection&lt;GrantedAuthority&gt; n rets comma separated list of it's
+	// string form
+
+	private String getAuthoritiesInString(Collection&lt;? extends GrantedAuthority&gt; authorities) {
+<span class="nc" id="L81">		String authorityString = authorities.stream().</span>
+<span class="nc" id="L82">				map(authority -&gt; authority.getAuthority())</span>
+<span class="nc" id="L83">				.collect(Collectors.joining(&quot;,&quot;));</span>
+<span class="nc" id="L84">		System.out.println(authorityString);</span>
+<span class="nc" id="L85">		return authorityString;</span>
+	}
+
+	public List&lt;GrantedAuthority&gt; getAuthoritiesFromClaims(Claims claims) {
+<span class="nc" id="L89">		String authString = (String) claims.get(&quot;authorities&quot;);</span>
+<span class="nc" id="L90">		List&lt;GrantedAuthority&gt; authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(authString);</span>
+<span class="nc" id="L91">		authorities.forEach(System.out::println);</span>
+<span class="nc" id="L92">		return authorities;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

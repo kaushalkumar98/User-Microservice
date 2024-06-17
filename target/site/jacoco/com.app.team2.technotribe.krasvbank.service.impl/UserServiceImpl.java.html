@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">spring_boot_backend_security_jwt_template</a> &gt; <a href="index.source.html" class="el_package">com.app.team2.technotribe.krasvbank.service.impl</a> &gt; <span class="el_source">UserServiceImpl.java</span></div><h1>UserServiceImpl.java</h1><pre class="source lang-java linenums">package com.app.team2.technotribe.krasvbank.service.impl;
+
+import java.math.BigDecimal;
+
+import javax.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.app.team2.technotribe.krasvbank.Security.JwtUtils;
+import com.app.team2.technotribe.krasvbank.dto.AccountInfo;
+import com.app.team2.technotribe.krasvbank.dto.BankResponse;
+import com.app.team2.technotribe.krasvbank.dto.CreditDebitRequest;
+import com.app.team2.technotribe.krasvbank.dto.EnquiryRequest;
+import com.app.team2.technotribe.krasvbank.dto.TransferRequest;
+import com.app.team2.technotribe.krasvbank.dto.SignupRequest;
+import com.app.team2.technotribe.krasvbank.entity.User;
+import com.app.team2.technotribe.krasvbank.external.services.ExternalTransactionService;
+import com.app.team2.technotribe.krasvbank.repository.UserRepository;
+import com.app.team2.technotribe.krasvbank.util.AccountUtils;
+
+import lombok.AllArgsConstructor;
+
+@Service
+@AllArgsConstructor
+public class UserServiceImpl implements UserService {
+
+	@Autowired
+	UserRepository userRepository;
+
+
+	@Autowired
+	PasswordEncoder passwordEncoder;
+
+	@Autowired
+	JwtUtils jwtUtils;
+
+	@Autowired
+	ExternalTransactionService externalTransactionService;
+
+	@Override
+	public BankResponse createAccount(SignupRequest userRequest) {
+
+<span class="fc bfc" id="L44" title="All 2 branches covered.">		if (userRepository.existsByEmail(userRequest.getEmail())) {</span>
+<span class="fc" id="L45">			return BankResponse.builder().responseCode(AccountUtils.ACCOUNT_EXISTS_CODE)</span>
+<span class="fc" id="L46">					.responseMessage(AccountUtils.ACCOUNT_EXISTS_MESSAGE).accountInfo(null).build();</span>
+		}
+		// creating account - saving new user
+<span class="fc" id="L49">		User newUser = User.builder().name(userRequest.getName()).gender(userRequest.getGender())</span>
+<span class="fc" id="L50">				.address(userRequest.getAddress()).stateOfOrigin(userRequest.getStateOfOrigin())</span>
+<span class="fc" id="L51">				.accountNumber(AccountUtils.generateAccountNumber()).accountBalance(BigDecimal.ZERO)</span>
+<span class="fc" id="L52">				.email(userRequest.getEmail()).password(passwordEncoder.encode(userRequest.getPassword()))</span>
+<span class="fc" id="L53">				.phoneNumber(userRequest.getPhoneNumber())</span>
+<span class="fc" id="L54">				.alternativePhoneNumber(userRequest.getAlternativePhoneNumber()).status(&quot;INACTIVE&quot;)</span>
+<span class="fc" id="L55">				.role(userRequest.getRole()).build();</span>
+
+<span class="fc" id="L57">		User savedUser = userRepository.save(newUser);</span>
+
+<span class="fc" id="L59">		return BankResponse.builder().responseCode(AccountUtils.ACCOUNT_CREATION_SUCCESS)</span>
+<span class="fc" id="L60">				.responseMessage(AccountUtils.ACCOUNT_CREATION_MESSAGE)</span>
+<span class="fc" id="L61">				.accountInfo(AccountInfo.builder().accountBalance(savedUser.getAccountBalance())</span>
+<span class="fc" id="L62">						.accountNumber(savedUser.getAccountNumber()).accountName(savedUser.getName()).build())</span>
+<span class="fc" id="L63">				.build();</span>
+
+	}
+
+	@Override
+	public BankResponse balanceEnquiry(EnquiryRequest request) {
+		// check if the provided account number exist in db
+<span class="fc" id="L70">		User userToCheakBalance = userRepository.findByAccountNumber(request.getAccountNumber());</span>
+<span class="fc" id="L71">		boolean isPasswordMatch = passwordEncoder.matches(request.getPassword(), userToCheakBalance.getPassword());</span>
+<span class="fc" id="L72">		System.out.println(isPasswordMatch + &quot;isPasswordMatch&quot;);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">		if (!isPasswordMatch) {</span>
+<span class="fc" id="L74">			return BankResponse.builder().responseMessage(AccountUtils.INCORRECT_PASSWORD_MESSAGE).build();</span>
+		}
+<span class="fc" id="L76">		BigDecimal balance = externalTransactionService.balanceEnquiry(request.getAccountNumber());</span>
+
+<span class="fc" id="L78">		User foundUser = userRepository.findByAccountNumber(request.getAccountNumber());</span>
+<span class="fc" id="L79">		return BankResponse.builder().responseCode(AccountUtils.ACCOUNT_FOUND_CODE)</span>
+<span class="fc" id="L80">				.responseMessage(AccountUtils.ACCOUNT_FOUND_MESSAGE)</span>
+<span class="fc" id="L81">				.accountInfo(AccountInfo.builder().accountBalance(balance).accountNumber(request.getAccountNumber())</span>
+<span class="fc" id="L82">						.accountName(foundUser.getName()).build())</span>
+<span class="fc" id="L83">				.build();</span>
+	}
+
+	@Override
+	public String nameEnquiry(EnquiryRequest request) {
+		// check if the provided account number exist in db
+<span class="nc" id="L89">		boolean isAccountExist = userRepository.existsByAccountNumber(request.getAccountNumber());</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">		if (!isAccountExist) {</span>
+<span class="nc" id="L91">			return AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE;</span>
+		}
+<span class="nc" id="L93">		User foundUser = userRepository.findByAccountNumber(request.getAccountNumber());</span>
+<span class="nc" id="L94">		System.out.println(&quot;inside userservice&quot; + foundUser.toString());</span>
+<span class="nc" id="L95">		return foundUser.getName();</span>
+	}
+
+	@Transactional
+	@Override
+	public BankResponse creditAccount(CreditDebitRequest request) {
+
+<span class="fc" id="L102">		boolean isAccountExist = userRepository.existsByAccountNumber(request.getAccountNumber());</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">		if (!isAccountExist) {</span>
+<span class="nc" id="L104">			return BankResponse.builder().responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)</span>
+<span class="nc" id="L105">					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE).accountInfo(null).build();</span>
+		}
+
+<span class="fc" id="L108">		User userToCredit = userRepository.findByAccountNumber(request.getAccountNumber());</span>
+
+<span class="fc" id="L110">		boolean isPasswordMatch = passwordEncoder.matches(request.getPassword(), userToCredit.getPassword());</span>
+<span class="fc" id="L111">		System.out.println(isPasswordMatch + &quot;isPasswordMatch&quot;);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">		if (!isPasswordMatch) {</span>
+<span class="fc" id="L113">			return BankResponse.builder().responseCode(AccountUtils.INCORRECT_PASSWORD_CODE)</span>
+<span class="fc" id="L114">					.responseMessage(AccountUtils.INCORRECT_PASSWORD_MESSAGE).accountInfo(null).build();</span>
+		} else {
+<span class="fc" id="L116">			return externalTransactionService.creditAccount(request);</span>
+		}
+	}
+
+	@Override
+	public BankResponse debitAccount(CreditDebitRequest request) {
+
+		// cheak Account if exists
+<span class="fc" id="L124">		boolean isAccountExist = userRepository.existsByAccountNumber(request.getAccountNumber());</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">		if (!isAccountExist) {</span>
+<span class="nc" id="L126">			return BankResponse.builder().responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)</span>
+<span class="nc" id="L127">					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE).accountInfo(null).build();</span>
+		}
+
+		// cheak the amount, debit amount is greater than balance
+<span class="fc" id="L131">		User userToDebit = userRepository.findByAccountNumber(request.getAccountNumber());</span>
+
+<span class="fc" id="L133">		boolean isPasswordMatch = passwordEncoder.matches(request.getPassword(), userToDebit.getPassword());</span>
+
+<span class="fc" id="L135">		System.out.println(isPasswordMatch + &quot;isPasswordMatch&quot;);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">		if (!isPasswordMatch) {</span>
+<span class="fc" id="L137">			return BankResponse.builder().responseCode(AccountUtils.INCORRECT_PASSWORD_CODE)</span>
+<span class="fc" id="L138">					.responseMessage(AccountUtils.INCORRECT_PASSWORD_MESSAGE).accountInfo(null).build();</span>
+		} else {
+
+<span class="fc" id="L141">			return externalTransactionService.debitAccount(request);</span>
+		}
+
+	}
+
+	@Transactional
+	@Override
+	public BankResponse transfer(TransferRequest request) {
+		// get the account to debit
+		// cheak Account if exists
+<span class="fc" id="L151">		boolean isDestinationAccountExist = userRepository.existsByAccountNumber(request.getDestinationAccountNumber());</span>
+<span class="fc" id="L152">		boolean isSourcenAccountExist = userRepository.existsByAccountNumber(request.getSourceAccountNumber());</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">		if (!isDestinationAccountExist) {</span>
+<span class="nc" id="L154">			return BankResponse.builder().responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)</span>
+<span class="nc" id="L155">					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE).accountInfo(null).build();</span>
+		}
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">		if (!isSourcenAccountExist) {</span>
+<span class="nc" id="L158">			return BankResponse.builder().responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)</span>
+<span class="nc" id="L159">					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE).accountInfo(null).build();</span>
+		}
+		// cheak if the amount i'm debiting is not more than the current balance
+		// debit the account
+<span class="fc" id="L163">		User sourceAccountUser = userRepository.findByAccountNumber(request.getSourceAccountNumber());</span>
+
+<span class="fc" id="L165">		boolean isPasswordMatch = passwordEncoder.matches(request.getPassword(), sourceAccountUser.getPassword());</span>
+
+<span class="fc" id="L167">		System.out.println(isPasswordMatch + &quot;isPasswordMatch&quot;);</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">		if (!isPasswordMatch) {</span>
+<span class="fc" id="L169">			return BankResponse.builder().responseCode(AccountUtils.INCORRECT_PASSWORD_CODE)</span>
+<span class="fc" id="L170">					.responseMessage(AccountUtils.INCORRECT_PASSWORD_MESSAGE).accountInfo(null).build();</span>
+		} else {
+<span class="fc" id="L172">			return externalTransactionService.transfer(request);</span>
+
+		}
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

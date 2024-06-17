@@ -1,0 +1,7 @@
+com\app\entity\Employee.class
+com\app\team2\technotribe\krasvbank\test\TransactionServiceImplTest.class
+com\app\team2\technotribe\krasvbank\test\UserServiceImplTest.class
+com\app\team2\technotribe\krasvbank\test\AdminServiceImplTest.class
+com\app\team2\technotribe\krasvbank\test\EmailServiceImplTest.class
+com\app\team2\technotribe\krasvbank\test\AdminControllerTest.class
+com\app\team2\technotribe\krasvbank\test\UserControllerTest.class

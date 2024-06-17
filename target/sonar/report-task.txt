@@ -1,0 +1,6 @@
+projectKey=User-Microservice
+serverUrl=http://localhost:9000
+serverVersion=10.5.1.90531
+dashboardUrl=http://localhost:9000/dashboard?id=User-Microservice
+ceTaskId=ec6d827d-bf90-4d39-b6f0-acf5a23b9f5a
+ceTaskUrl=http://localhost:9000/api/ce/task?id=ec6d827d-bf90-4d39-b6f0-acf5a23b9f5a

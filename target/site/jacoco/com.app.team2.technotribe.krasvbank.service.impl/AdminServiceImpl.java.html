@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">spring_boot_backend_security_jwt_template</a> &gt; <a href="index.source.html" class="el_package">com.app.team2.technotribe.krasvbank.service.impl</a> &gt; <span class="el_source">AdminServiceImpl.java</span></div><h1>AdminServiceImpl.java</h1><pre class="source lang-java linenums">package com.app.team2.technotribe.krasvbank.service.impl;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.app.team2.technotribe.krasvbank.dto.CreateBankAccountDto;
+import com.app.team2.technotribe.krasvbank.dto.GetUserByAccNumDto;
+import com.app.team2.technotribe.krasvbank.dto.GetUserByStatusDto;
+import com.app.team2.technotribe.krasvbank.dto.UpdateAccountStatusRequest;
+import com.app.team2.technotribe.krasvbank.entity.User;
+import com.app.team2.technotribe.krasvbank.external.services.ExternalTransactionService;
+import com.app.team2.technotribe.krasvbank.repository.UserRepository;
+import com.app.team2.technotribe.krasvbank.util.AccountUtils;
+
+import lombok.Data;
+
+@Data
+@Service
+public class AdminServiceImpl implements AdminService {
+
+	@Autowired
+	UserRepository userRepo;
+	@Autowired
+	ExternalTransactionService externalTransactionService;
+
+	@Override
+	public String activateUser(UpdateAccountStatusRequest request) {
+<span class="fc" id="L31">		User user = userRepo.findByAccountNumber(request.getAccountNumber());</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">		if (user != null) {</span>
+<span class="fc" id="L33">			user.setStatus(&quot;ACTIVE&quot;);</span>
+<span class="fc" id="L34">			userRepo.save(user);</span>
+			
+<span class="fc" id="L36">			CreateBankAccountDto newacc = CreateBankAccountDto.builder()</span>
+<span class="fc" id="L37">					.name(user.getName())</span>
+<span class="fc" id="L38">					.accountNumber(user.getAccountNumber())</span>
+<span class="fc" id="L39">					.accountBalance(BigDecimal.ZERO)</span>
+<span class="fc" id="L40">					.email(user.getEmail())</span>
+<span class="fc" id="L41">					.password(user.getPassword())</span>
+<span class="fc" id="L42">					.phoneNumber(user.getPhoneNumber())</span>
+<span class="fc" id="L43">					.alternativePhoneNumber(user.getAlternativePhoneNumber())</span>
+<span class="fc" id="L44">					.build();</span>
+			
+<span class="fc" id="L46">			return externalTransactionService.createAccount(newacc);</span>
+			
+			
+		}
+<span class="fc" id="L50">		return &quot;user not found&quot;;</span>
+	}
+
+	@Override
+	public List&lt;User&gt; getUserByStatus(GetUserByStatusDto request) {
+<span class="fc" id="L55">		return userRepo.findByStatus(request.getStatus());</span>
+
+	}
+
+	@Override
+	public User getUserByAccNum(GetUserByAccNumDto request) {
+		// TODO Auto-generated method stub
+<span class="fc" id="L62">		return userRepo.findByAccountNumber(request.getAccountNumber());</span>
+	}
+
+	@Override
+	public String inactiveUser(UpdateAccountStatusRequest request) {
+<span class="fc" id="L67">		User user = userRepo.findByAccountNumber(request.getAccountNumber());</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">		if (user != null) {</span>
+<span class="fc" id="L69">			user.setStatus(&quot;INACTIVE&quot;);</span>
+<span class="fc" id="L70">			userRepo.save(user);</span>
+<span class="fc" id="L71">			return &quot;User is Inactive&quot;;</span>
+		}
+<span class="fc" id="L73">		return &quot;user not found&quot;;</span>
+	}
+
+	@Override
+	public String updateUserDetails(User user) {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">		if(null!=userRepo.findByAccountNumber(user.getAccountNumber())){</span>
+<span class="fc" id="L79">			userRepo.save(user);</span>
+<span class="fc" id="L80">			return &quot;User Details Saved Successfully&quot;;</span>
+		}
+<span class="fc" id="L82">		return &quot;Invalid Account Number&quot;;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

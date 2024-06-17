@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTRequestFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">spring_boot_backend_security_jwt_template</a> &gt; <a href="index.source.html" class="el_package">com.app.team2.technotribe.krasvbank.Security</a> &gt; <span class="el_source">JWTRequestFilter.java</span></div><h1>JWTRequestFilter.java</h1><pre class="source lang-java linenums">package com.app.team2.technotribe.krasvbank.Security;
+
+import java.io.IOException;
+
+import com.app.team2.technotribe.krasvbank.repository.TokenBlacklistRepository;
+
+import java.util.List;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import io.jsonwebtoken.Claims;
+
+@Component
+//custom filter
+<span class="nc" id="L27">public class JWTRequestFilter extends OncePerRequestFilter {</span>
+
+	@Autowired
+	private JwtUtils utils;
+	@Autowired
+	private TokenBlacklistRepository tokenBlacklistRepository;
+
+	@Override
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
+<span class="nc" id="L37">		String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="nc bnc" id="L38" title="All 4 branches missed.">		if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="nc" id="L39">			String token = authHeader.substring(7);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">			if (!tokenBlacklistRepository.contains(token)) {</span>
+				try {
+<span class="nc" id="L42">					Claims claims = utils.validateJwtToken(token);</span>
+<span class="nc" id="L43">					String email = utils.getUserNameFromJwtToken(claims);</span>
+<span class="nc" id="L44">					List&lt;GrantedAuthority&gt; authorities = utils.getAuthoritiesFromClaims(claims);</span>
+<span class="nc" id="L45">					UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email,</span>
+							null, authorities);
+<span class="nc" id="L47">					authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));</span>
+<span class="nc" id="L48">					SecurityContextHolder.getContext().setAuthentication(authentication);</span>
+<span class="nc" id="L49">				} catch (Exception e) {</span>
+<span class="nc" id="L50">					response.sendError(HttpStatus.UNAUTHORIZED.value(), &quot;Invalid token, please login&quot;);</span>
+<span class="nc" id="L51">					return;</span>
+<span class="nc" id="L52">				}</span>
+			} else {
+<span class="nc" id="L54">				response.sendError(HttpStatus.UNAUTHORIZED.value(), &quot;Invalid token, please login&quot;);</span>
+<span class="nc" id="L55">				return;</span>
+			}
+		}
+<span class="nc" id="L58">		filterChain.doFilter(request, response);</span>
+
+<span class="nc" id="L60">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
